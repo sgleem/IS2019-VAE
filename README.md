@@ -27,47 +27,19 @@ Tensorflow and kaldi implementation of our Interspeech2019 paper [VAE-based regu
 
 ## Usage
 
-1. [install kaldi](https://github.com/kaldi-asr/kaldi) (note: if you are one of CSLT members, you can referance[Dr. tzy's Kaldi](https://github.com/tzyll/kaldi) or [CSLT Kaldi](https://github.com/csltstu/kaldi))
-
-2. create a conda environment and install the necessary Python package
-
+1. In Linux shell, type `bash data/data_prepare.sh`
+2. In Anaconda Prompt, type 
 ```bash
-# for example
-conda create -n tf python=3.6
-conda activate tf
-pip install -r requirements.txt
+python3 -u main.py --epoch 200 --batch_size 200 --n_hidden 1800 --learn_rate 0.00001 --beta1 0.5 --dataset_path .\\data\\train\\xvector.npz --spk_path .\\data\\train\\spk.npz --z_dim 200 --KL_weigth 0.03 --cohesive_weight 10 --is_training 1
 ```
 
-3. git clone the code and modify the `path.sh`, make sure that `path.sh` contains your kaldi path
+3. In Linux shell, type `bash eval.sh`
 
-```bash
-git clone https://github.com/zyzisyz/v-vector-tf.git
+4. Go to egs/voxceleb/v2
 
-# edit path.sh
-vim path.sh
-# export KALDI_ROOT=${replace it by your kaldi root path}
-```
+5. In run.sh, set stage=10
 
-4. calculate baseline EER
-
-```bash
-bash baseline.sh
-```
-
-5. Train a model
-
-```bash
-# first of all, activate the conda Python environment
-conda activate tf
-# you can edit train.sh to change VAE model's config
-bash train.sh
-```
-
-6. Use kaldi-toolkit to train the backend scoring model and calculate EER
-
-```bash
-bash eval.sh
-```
+6. type `bash run.sh`
 
 ## Our result
 

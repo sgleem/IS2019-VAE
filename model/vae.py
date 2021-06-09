@@ -10,6 +10,8 @@ from __future__ import print_function
 import os
 import time
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
+# import tensorflow as tf
 import numpy as np
 import random
 from model.model_utils import *
@@ -45,6 +47,8 @@ class VAE(object):
         # training datasets
         self.dataset_path = dataset_path
         self.input_data = np.load(self.dataset_path)['vector']
+        print(len(self.input_data))
+        # self.input_data = self.input_data[:int(len(self.input_data)*0.5)]
         self.input_utt = np.load(self.dataset_path)['utt']
 
         # input_data | spk_list
@@ -92,10 +96,10 @@ class VAE(object):
 
     # Gaussian MLP Encoder
     def MPL_encoder(self, x, n_hidden, n_output):
-        with tf.variable_scope("gaussian_MLP_encoder"):
+        with tf.compat.v1.variable_scope("gaussian_MLP_encoder"):
 
             # initializers
-            w_init = tf.contrib.layers.variance_scaling_initializer()
+            w_init = tf.compat.v1.initializers.variance_scaling()
             b_init = tf.constant_initializer(0.)
 
             # hidden layer-1
@@ -108,9 +112,9 @@ class VAE(object):
             net = MLP_net(input=net, layer_name="p3",
                           n_hidden=n_hidden, acitvate='tanh')
 
-            wo = tf.get_variable(
+            wo = tf.compat.v1.get_variable(
                 'wo', [net.get_shape()[1], n_output * 2], initializer=w_init)
-            bo = tf.get_variable('bo', [n_output * 2], initializer=b_init)
+            bo = tf.compat.v1.get_variable('bo', [n_output * 2], initializer=b_init)
             gaussian_params = tf.matmul(net, wo) + bo
 
             mean = gaussian_params[:, :n_output]
@@ -120,10 +124,10 @@ class VAE(object):
 
     # Bernoulli decoder
     def MLP_decoder(self, z, n_hidden, n_output):
-        with tf.variable_scope("bernoulli_MLP_decoder"):
+        with tf.compat.v1.variable_scope("bernoulli_MLP_decoder"):
 
             # initializers
-            w_init = tf.contrib.layers.variance_scaling_initializer()
+            w_init = tf.compat.v1.initializers.variance_scaling()
             b_init = tf.constant_initializer(0.)
 
             # hidden layer-1
@@ -134,9 +138,9 @@ class VAE(object):
                           n_hidden=n_hidden, acitvate='sigmoid')
 
             # output
-            wo = tf.get_variable(
+            wo = tf.compat.v1.get_variable(
                 'wo', [net.get_shape()[1], n_output], initializer=w_init)
-            bo = tf.get_variable('bo', [n_output], initializer=b_init)
+            bo = tf.compat.v1.get_variable('bo', [n_output], initializer=b_init)
 
             y = tf.matmul(net, wo) + bo
 
@@ -171,9 +175,9 @@ class VAE(object):
     def build_model(self):
         # some parameters
         """ Graph Input """
-        self.inputs = tf.placeholder(
+        self.inputs = tf.compat.v1.placeholder(
             tf.float32, [None, self.dnn_input_dim], name='input_vector')
-        self.inputs_table = tf.placeholder(
+        self.inputs_table = tf.compat.v1.placeholder(
             tf.float32, [None, self.z_dim], name='input_table')
         """ Loss Function """
 
@@ -183,7 +187,7 @@ class VAE(object):
 
         # sampling by re-parameterization
         z = self.mu + self.sigma * \
-            tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+            tf.compat.v1.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
 
         # decoding
         self.out = self.MLP_decoder(
@@ -197,39 +201,39 @@ class VAE(object):
 
         # KL Loss
         KL_divergence = 0.5 * tf.reduce_sum(tf.square(self.mu) + tf.square(
-            self.sigma) - tf.log(1e-8 + tf.square(self.sigma)) - 1, 1)
+            self.sigma) - tf.compat.v1.log(1e-8 + tf.square(self.sigma)) - 1, 1)
         self.KL_divergence = self.KL_weigth*tf.reduce_mean(KL_divergence)
 
         # cohesive_loss
         self.cohesive_loss = self.cohesive_weight * \
-            tf.losses.mean_squared_error(self.mu, self.inputs_table)
+            tf.compat.v1.losses.mean_squared_error(self.mu, self.inputs_table)
 
         # all loss
         self.loss = self.re_construct_loss + self.KL_divergence + self.cohesive_loss
 
         """ Training """
-        t_vars = tf.trainable_variables()
-        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
+        t_vars = tf.compat.v1.trainable_variables()
+        with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """ Summary """
-        re_loss = tf.summary.scalar("re_loss", self.re_construct_loss)
-        kl_sum = tf.summary.scalar("kl_loss", self.KL_divergence)
-        cohesive_loss = tf.summary.scalar("cohesive_loss", self.cohesive_loss)
-        loss_sum = tf.summary.scalar("loss", self.loss)
+        re_loss = tf.compat.v1.summary.scalar("re_loss", self.re_construct_loss)
+        kl_sum = tf.compat.v1.summary.scalar("kl_loss", self.KL_divergence)
+        cohesive_loss = tf.compat.v1.summary.scalar("cohesive_loss", self.cohesive_loss)
+        loss_sum = tf.compat.v1.summary.scalar("loss", self.loss)
 
         # final summary operations
-        self.merged_summary_op = tf.summary.merge_all()
+        self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
         # initialize all variables
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
 
-        self.saver = tf.train.Saver(max_to_keep=250)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=250)
 
         # summary writer
-        self.writer = tf.summary.FileWriter(
-            self.log_dir + '/' + self.model_name, self.sess.graph)
+        self.writer = tf.compat.v1.summary.FileWriter(
+            os.path.join(self.log_dir,self.model_name), self.sess.graph)
 
     def train(self):
 
@@ -311,7 +315,7 @@ class VAE(object):
         import re
         print(" [*] Reading checkpoints...")
 
-        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        ckpt = tf.compat.v1.train.get_checkpoint_state(checkpoint_dir)
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
             self.saver.restore(self.sess, os.path.join(
@@ -325,7 +329,7 @@ class VAE(object):
             return False, 0
 
     def all_ckpt_paths(self):
-        ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
+        ckpt = tf.compat.v1.train.get_checkpoint_state(self.checkpoint_dir)
         return ckpt.all_model_checkpoint_paths
 
     def eval(self, input_vector, n):

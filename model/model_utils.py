@@ -7,6 +7,8 @@
 import math
 import numpy as np
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
+# import tensorflow 
 from scipy import stats
 import random
 
@@ -46,15 +48,15 @@ def shuffle_data(data):
 
 def MLP_net(input, layer_name, n_hidden, acitvate="elu"):
     '''tensorflow-layer'''
-    w_init = tf.contrib.layers.variance_scaling_initializer()
+    w_init = tf.initializers.variance_scaling()
     b_init = tf.constant_initializer(0.)
 
     w_str = 'w_'+str(layer_name)
     b_str = 'b_'+str(layer_name)
 
-    w = tf.get_variable(
+    w = tf.compat.v1.get_variable(
         w_str, [input.get_shape()[1], n_hidden], initializer=w_init)
-    b = tf.get_variable(b_str, [n_hidden], initializer=b_init)
+    b = tf.compat.v1.get_variable(b_str, [n_hidden], initializer=b_init)
 
     output = tf.matmul(input, w) + b
 
